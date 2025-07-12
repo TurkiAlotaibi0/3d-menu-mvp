@@ -1,0 +1,154 @@
+Product Requirements Document (PRD)
+
+Project Title
+
+3D‑Interactive Menu Platform – Restaurant Segment (MVP)
+
+1. Problem Statement
+
+Dining‑in restaurants – particularly fine‑dining and gourmet‑burger venues – struggle to convey dish appearance and portion expectations using traditional 2‑D photos. Customers hesitate or under‑order, while owners lack insight into which visuals attract attention. Earlier 3‑D menu pilots failed because capture was expensive, loading was slow, and upkeep was painful.
+
+Goal: Provide a friction‑less, low‑cost web tool that lets restaurants capture a dish with a smartphone, auto‑generate a compressed 3‑D model (≤ 8 MB, glb/usdz), and publish it behind a QR code so diners can rotate/zoom the dish and optionally place it in augmented reality on their table – all within 3 seconds over average Wi‑Fi/5G.
+
+2. Personas
+
+Restaurant Admin (Owner / Chef)
+
+Wants to showcase dishes, update the menu quickly, and view engagement analytics.
+
+Faces limited tech skills, tight margins, and seasonal menu changes.
+
+Diner (End User)
+
+Wants to see portion size and plating clearly and enjoy an immersive preview without installing an app.
+
+Suffers from slow Wi‑Fi and fatigue from installing new apps.
+
+3. User Flows
+
+Restaurant On‑boarding
+
+Sign‑up → create profile and pick a plan.
+
+Add Dish → record a 30‑second 360° video via phone and upload.
+
+Processing → server runs photogrammetry and produces a glb/usdz plus fallback JPEG.
+
+Preview & Edit → rotate model, adjust lighting preset, add name and price.
+
+Publish → system generates a QR code and short URL; admin prints or embeds it.
+
+Dashboard → view counts, rotations, and dwell‑time per dish.
+
+Diner Journey
+
+Scan QR from the table or printed menu.
+
+A web page loads instantly with a low‑res fallback image.
+
+The viewer shows the dish; diner can rotate 360°, zoom, and inspect (underside hidden for now).
+
+Optional “Place in AR” button lets the diner view the dish on the table via QuickLook or WebXR.
+
+Ordering and payment are out of scope for the MVP.
+
+4. Functional Requirements
+
+Capture & Upload: Accept 720–1080 p MP4 (≤ 150 MB) or 50–100 JPGs; overlay guides a 40–60 cm sweep.
+
+3‑D Reconstruction: Use COLMAP → OpenMVG for point cloud and Instant‑NGP for mesh and texture; auto‑centre, decimate to ≤ 75 k triangles, compress with Draco; output glb, usdz, and a 1280 px JPEG.
+
+Hosting & CDN: Store assets on AWS S3 and serve through CloudFront with gzip/brotli; signed URLs valid for 7 days.
+
+Viewer Component: Three.js React component under 120 kB; auto‑spin, pinch‑zoom, full rotation, optional AR placement.
+
+Engagement Analytics: Track model_view, rotate, zoom, and time_spent; aggregate per dish in PostgreSQL and display in the dashboard.
+
+Admin Dashboard: Built with Next.js and Tailwind; pages include Menu List, Add Dish wizard, Analytics, and Billing.
+
+Billing & Subscription: Starter plan (10 dishes / 5 GB) at 49 SAR per month; Pro plan (unlimited) at 199 SAR per month; payments via Stripe.
+
+5. Non‑Functional Requirements
+
+Uptime target: 99.5 %.
+
+Model‑generation SLA: ≤ 10 minutes during peak load.
+
+Security: adhere to OWASP Top 10 and use signed URLs.
+
+Localization: English and Najdi Arabic for all UI strings.
+
+6. Tech Stack
+
+Frontend: React (Next.js 14), TypeScript, Three.js, TailwindCSS.
+
+Mobile Capture: PWA only – no native apps in the MVP.
+
+Backend: Node.js 20 (NestJS) with GraphQL; Python micro‑service for photogrammetry.
+
+Data: PostgreSQL 15 (Supabase), Redis, S3, CloudFront.
+
+Auth: Supabase Auth (JWT).
+
+CI/CD: GitHub Actions deploying to Vercel (frontend) and AWS ECS (backend).
+
+7. System Architecture (text diagram)
+
+PWA → Node API → Redis queue → Python Worker (photogrammetry) → S3
+                ↓                                 ↑
+          PostgreSQL (metadata)               CloudFront → PWA viewer / Dashboard
+
+8. Data Model (simplified)
+
+Restaurant: id, name, plan, created_at
+
+Dish: id, restaurant_id, name, price, model_url, fallback_img_url, size_mb, status
+
+Event: id, dish_id, event_type, duration_ms, created_at, session_id
+
+9. API Endpoints (samples)
+
+POST /dishes – create a dish and start an upload session (restaurant‑auth).
+
+PUT /dishes/{id}/upload – return a signed S3 URL for direct upload (restaurant‑auth).
+
+GET /dishes/{id} – public metadata plus model / fallback URLs.
+
+GET /analytics/{dish_id} – aggregated engagement metrics (restaurant‑auth).
+
+
+
+10. Future Extensions
+
+AI‑based relight and colour correction.
+
+Batch LiDAR capture app.
+
+Multi‑restaurant roles and teams.
+
+Public social‑sharing links.
+
+11. Technical References (for Cursor)
+
+Insert3D – GitHub: https://github.com/Viktoo/Insert3D
+
+Reddit post – “I made a 3D menu”: https://www.reddit.com/r/3Dmodeling/comments/11xclru/i_made_a_3d_menu/
+
+Three.js documentation: https://threejs.org/docs/
+
+<model-viewer> documentation: https://modelviewer.dev/
+
+Apple Quick Look / USDZ guide: https://developer.apple.com/augmented-reality/quick-look/
+
+COLMAP documentation: https://colmap.github.io/
+
+Instant‑NGP (Nvidia): https://github.com/NVlabs/instant-ngp
+
+Google Draco compression: https://google.github.io/draco/
+
+AWS S3 + CloudFront docs: https://docs.aws.amazon.com/
+
+Supabase JS docs: https://supabase.com/docs
+
+End of PRD v1.3 – Last updated: 11 Jul 2025 (Asia/Riyadh)
+
